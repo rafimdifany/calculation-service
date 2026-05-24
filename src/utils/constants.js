@@ -7,7 +7,7 @@ module.exports = {
   INSTALLATION_FREE_THRESHOLD: parseFloat(process.env.INSTALLATION_FREE_THRESHOLD) || 12000,
 
   // Tags
-  TAG_INSTALLATION_SERVICE: 'installation-service',
+  TAG_INSTALLATION_SERVICE: 'service',
   TAG_INSTALLATION_LARGE: 'installation-large',
   TAG_INSTALLATION_SMALL: 'installation-small',
 
