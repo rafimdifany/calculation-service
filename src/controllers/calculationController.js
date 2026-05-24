@@ -8,9 +8,10 @@ const logger = require('../utils/logger');
  */
 const calculate = async (req, res, next) => {
   try {
-    const { clientId, clientSecret, currency, notes, items } = req.body;
+    const { items, notes, currency } = req.body;
+    const reqCurrency = currency || 'SGD';
 
-    logger.info(`Received calculation request with ${items.length} items, currency: ${currency}`);
+    logger.info(`Received calculation request with ${items.length} items`);
 
     // Step 1: Calculate charges (ocean freight, local delivery, installation)
     const calculation = calculationService.calculate(items, notes);
@@ -24,10 +25,8 @@ const calculate = async (req, res, next) => {
 
     // Step 2: Create draft order in Shopify (credentials from FE payload)
     const { checkoutUrl } = await shopifyService.createDraftOrder(
-      clientId,
-      clientSecret,
       calculation.lineItems,
-      currency,
+      reqCurrency,
       calculation.note,
       calculation.appliedDiscount
     );

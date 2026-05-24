@@ -63,10 +63,6 @@ Content-Type: application/json
 
 ```json
 {
-  "clientId": "your-client-id",
-  "clientSecret": "your-client-secret",
-  "currency": "SGD",
-  "notes": "optional notes",
   "items": [
     {
       "variant_id": 53097199272258,

@@ -11,11 +11,9 @@ let tokenCache = {
 /**
  * Get Shopify access token. Uses cached token if still valid.
  * Credentials come from the client request payload (clientId & clientSecret).
- * @param {string} clientId - Client ID from request payload
- * @param {string} clientSecret - Client Secret from request payload
  * @returns {Promise<string>} Access token
  */
-const getAccessToken = async (clientId, clientSecret) => {
+const getAccessToken = async () => {
   // Check if cached token is still valid (with 60s buffer)
   if (tokenCache.accessToken && tokenCache.expiresAt && Date.now() < tokenCache.expiresAt) {
     logger.debug('Using cached Shopify access token');
@@ -39,8 +37,8 @@ const getAccessToken = async (clientId, clientSecret) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
         grant_type: 'client_credentials',
       }),
     });
@@ -70,16 +68,10 @@ const getAccessToken = async (clientId, clientSecret) => {
 
 /**
  * Create a draft order in Shopify.
- * @param {string} clientId - Client ID from request payload (for OAuth)
- * @param {string} clientSecret - Client Secret from request payload (for OAuth)
- * @param {object[]} lineItems - Line items for the draft order
- * @param {string} currency - Currency code (e.g., 'SGD')
- * @param {string} note - Order note
- * @param {object} [appliedDiscount] - Optional applied discount
  * @returns {Promise<object>} Draft order response with checkout URL
  */
-const createDraftOrder = async (clientId, clientSecret, lineItems, currency, note, appliedDiscount) => {
-  const accessToken = await getAccessToken(clientId, clientSecret);
+const createDraftOrder = async (lineItems, currency, note, appliedDiscount) => {
+  const accessToken = await getAccessToken();
   const storeUrl = process.env.SHOPIFY_STORE_URL;
   const url = `${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/draft_orders.json`;
 
@@ -87,9 +79,12 @@ const createDraftOrder = async (clientId, clientSecret, lineItems, currency, not
     draft_order: {
       line_items: lineItems,
       currency: currency,
-      note: note,
     },
   };
+
+  if (note) {
+    payload.draft_order.note = note;
+  }
 
   if (appliedDiscount) {
     payload.draft_order.applied_discount = appliedDiscount;

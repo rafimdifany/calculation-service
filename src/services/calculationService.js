@@ -114,7 +114,7 @@ const calculate = (items, notes) => {
   }
 
   // Use note directly from payload
-  let note = notes || '';
+  let note = notes || null;
 
   logger.debug(`Draft order note: ${note}`);
 

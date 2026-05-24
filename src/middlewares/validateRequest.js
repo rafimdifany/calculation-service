@@ -29,16 +29,6 @@ const itemSchema = Joi.object({
 });
 
 const requestSchema = Joi.object({
-  clientId: Joi.string().required().messages({
-    'any.required': 'clientId is required',
-  }),
-  clientSecret: Joi.string().required().messages({
-    'any.required': 'clientSecret is required',
-  }),
-  currency: Joi.string().required().messages({
-    'any.required': 'currency is required',
-  }),
-  notes: Joi.string().allow('', null).optional(),
   items: Joi.array().items(itemSchema).min(1).required().messages({
     'any.required': 'items array is required',
     'array.min': 'items must contain at least 1 item',
