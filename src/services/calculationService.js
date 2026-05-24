@@ -41,7 +41,7 @@ const calculate = (items, notes) => {
 
   // Calculate FPA (Final Product Amount) from product items only
   const fpa = productItems.reduce((sum, item) => {
-    return sum + parseFloat(item.price_display) * item.quantity;
+    return sum + item.price * item.quantity;
   }, 0);
   const fpaRounded = Math.round(fpa * 100) / 100;
 
@@ -132,7 +132,7 @@ const calculate = (items, notes) => {
   }
 
   if (isInstallationFree && installationItems.length > 0) {
-    const totalInstallationCost = installationItems.reduce((sum, item) => sum + parseFloat(item.price_display) * item.quantity, 0);
+    const totalInstallationCost = installationItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     if (totalInstallationCost > 0) {
       totalDiscount += totalInstallationCost;
       discountDescriptions.push(`Installation FREE (FPA > SGD ${INSTALLATION_FREE_THRESHOLD})`);

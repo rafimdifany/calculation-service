@@ -73,14 +73,16 @@ Content-Type: application/json
       "quantity": 1,
       "title": "Walnut High-Back Leather Sofa",
       "tags": "Best Seller, installation-large, Living Room, Sofa",
-      "price_display": "1400.00"
+      "price": 1400.00,
+      "price_display": "SGD 1400.00"
     },
     {
       "variant_id": 53213434151234,
       "quantity": 1,
       "title": "Installation Service",
       "tags": "installation-service, service",
-      "price_display": "50.00"
+      "price": 50.00,
+      "price_display": "SGD 50.00"
     }
   ]
 }
@@ -116,7 +118,7 @@ Content-Type: application/json
 | Installation | FPA < $12,000 | Original price |
 | Installation | FPA ≥ $12,000 | FREE |
 
-> **FPA** = Final Product Amount = sum of (price_display × quantity) for product items only (excluding installation-service items).
+> **FPA** = Final Product Amount = sum of (price × quantity) for product items only (excluding installation-service items).
 
 ## Deploy to Vercel
 

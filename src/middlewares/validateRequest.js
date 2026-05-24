@@ -18,9 +18,13 @@ const itemSchema = Joi.object({
   tags: Joi.string().allow('').required().messages({
     'any.required': 'tags is required for each item',
   }),
-  price_display: Joi.string().pattern(/^\d+(\.\d{1,2})?$/).required().messages({
+  price: Joi.number().min(0).required().messages({
+    'any.required': 'price is required for each item',
+    'number.base': 'price must be a valid number (e.g., 1400.00)',
+    'number.min': 'price cannot be negative',
+  }),
+  price_display: Joi.string().required().messages({
     'any.required': 'price_display is required for each item',
-    'string.pattern.base': 'price_display must be a valid decimal number (e.g., "1400.00")',
   }),
 });
 
