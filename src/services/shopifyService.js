@@ -228,8 +228,7 @@ const getInventoryQuantities = async (variantIds) => {
         levels.forEach((edge) => {
           const quantities = edge.node?.quantities || [];
           quantities.forEach((q) => {
-            // We already filtered by names: ["available"] in the query
-            if (typeof q.quantity === 'number') {
+            if (q.name === 'available') {
               totalAvailable += q.quantity;
             }
           });

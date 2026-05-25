@@ -147,8 +147,21 @@ const calculate = (items, notes, inventoryMap = {}) => {
 
   let appliedDiscount = null;
   if (totalDiscount > 0) {
+    const hasFreightFree = isOceanFreightFree;
+    const hasInstallFree = isInstallationFree && installationItems.length > 0 &&
+      installationItems.reduce((sum, item) => sum + item.price * item.quantity, 0) > 0;
+
+    let discountTitle = '';
+    if (hasFreightFree && hasInstallFree) {
+      discountTitle = 'Free Freight & Install';
+    } else if (hasFreightFree) {
+      discountTitle = 'Free Ocean Freight';
+    } else if (hasInstallFree) {
+      discountTitle = 'Free Installation Service';
+    }
+
     appliedDiscount = {
-      title: "Free Benefits Applied",
+      title: discountTitle,
       description: discountDescriptions.join(" • "),
       value_type: "fixed_amount",
       value: totalDiscount.toFixed(2),
