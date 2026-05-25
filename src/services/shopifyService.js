@@ -139,5 +139,113 @@ const createDraftOrder = async (lineItems, currency, note, appliedDiscount, ship
     throw new ShopifyApiError(`Failed to create draft order: ${error.message}`);
   }
 };
+/**
+ * Fetch inventory quantities for given variant IDs using GraphQL Admin API.
+ * @param {number[]} variantIds - Array of product variant IDs
+ * @returns {Promise<Object>} Map of variant ID to available inventory quantity
+ */
+const getInventoryQuantities = async (variantIds) => {
+  if (!variantIds || variantIds.length === 0) return {};
 
-module.exports = { getAccessToken, createDraftOrder };
+  const accessToken = await getAccessToken();
+  const storeUrl = process.env.SHOPIFY_STORE_URL;
+  const url = `${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
+
+  const gids = variantIds.map((id) => `gid://shopify/ProductVariant/${id}`);
+
+  const query = `
+    query getStock($ids: [ID!]!) {
+      nodes(ids: $ids) {
+        ... on ProductVariant {
+          id
+          inventoryItem {
+            inventoryLevels(first: 50) {
+              edges {
+                node {
+                  quantities(names: ["available"]) {
+                    quantity
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const payload = {
+    query,
+    variables: { ids: gids },
+  };
+
+  logger.info(`Fetching inventory quantities for ${variantIds.length} variants...`);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      logger.error(`GraphQL API returned non-JSON response. Raw text: ${responseText}`);
+      throw new ShopifyApiError(`Unexpected non-JSON response: ${responseText.slice(0, 150)}...`);
+    }
+
+    if (data.errors) {
+      let errorMessage = 'Unknown GraphQL Error';
+      if (Array.isArray(data.errors)) {
+        errorMessage = data.errors.map((e) => e.message || JSON.stringify(e)).join('; ');
+      } else if (typeof data.errors === 'string') {
+        errorMessage = data.errors;
+      } else {
+        errorMessage = JSON.stringify(data.errors);
+      }
+      
+      logger.error(`GraphQL inventory fetch failed: ${errorMessage}`);
+      throw new ShopifyApiError(`Failed to fetch inventory: ${errorMessage}`);
+    }
+
+    const inventoryMap = {};
+    if (data.data && data.data.nodes) {
+      data.data.nodes.forEach((node) => {
+        if (!node || !node.id) return;
+        
+        // Extract numeric ID from global ID
+        const variantIdStr = node.id.split('/').pop();
+        
+        let totalAvailable = 0;
+        const levels = node.inventoryItem?.inventoryLevels?.edges || [];
+        
+        levels.forEach((edge) => {
+          const quantities = edge.node?.quantities || [];
+          quantities.forEach((q) => {
+            // We already filtered by names: ["available"] in the query
+            if (typeof q.quantity === 'number') {
+              totalAvailable += q.quantity;
+            }
+          });
+        });
+
+        inventoryMap[variantIdStr] = totalAvailable;
+      });
+    }
+
+    logger.info(`Inventory mapping result: ${JSON.stringify(inventoryMap)}`);
+    return inventoryMap;
+  } catch (error) {
+    if (error instanceof ShopifyApiError) throw error;
+    logger.error(`Failed to fetch inventory: ${error.message}`);
+    throw new ShopifyApiError(`Failed to fetch inventory: ${error.message}`);
+  }
+};
+
+module.exports = { getAccessToken, createDraftOrder, getInventoryQuantities };

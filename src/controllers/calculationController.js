@@ -13,8 +13,21 @@ const calculate = async (req, res, next) => {
 
     logger.info(`Received calculation request with ${items.length} items`);
 
-    // Step 1: Calculate charges (ocean freight, local delivery, installation)
-    const calculation = calculationService.calculate(items, notes);
+    // Step 1: Fetch inventory for product items (non-service)
+    const productVariantIds = items
+      .filter((item) => {
+        const tags = item.tags ? item.tags.split(',').map((t) => t.trim().toLowerCase()) : [];
+        return !tags.includes('service');
+      })
+      .map((item) => item.variant_id);
+
+    let inventoryMap = {};
+    if (productVariantIds.length > 0) {
+      inventoryMap = await shopifyService.getInventoryQuantities(productVariantIds);
+    }
+
+    // Step 2: Calculate charges (ocean freight, local delivery, installation) and build line items
+    const calculation = calculationService.calculate(items, notes, inventoryMap);
 
     logger.info(
       `Calculation result — FPA: $${calculation.fpa.toFixed(2)}, ` +

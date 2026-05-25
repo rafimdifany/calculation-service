@@ -32,9 +32,10 @@ const isInstallationService = (item) => {
  * Calculate all charges and build line items for Shopify draft order.
  * @param {object[]} items - Items from the request payload
  * @param {string} [notes] - Optional notes from the request
+ * @param {object} [inventoryMap] - Optional map of variant_id to available inventory quantity
  * @returns {object} Calculation result
  */
-const calculate = (items, notes) => {
+const calculate = (items, notes, inventoryMap = {}) => {
   // Separate product items and installation-service items
   const productItems = items.filter((item) => !isInstallationService(item));
   const installationItems = items.filter((item) => isInstallationService(item));
@@ -77,10 +78,22 @@ const calculate = (items, notes) => {
 
   // 1. Add product items (with variant_id)
   productItems.forEach((item) => {
-    lineItems.push({
+    const lineItem = {
       variant_id: item.variant_id,
       quantity: item.quantity,
-    });
+    };
+
+    const stock = inventoryMap[item.variant_id];
+    if (stock !== undefined && (stock - item.quantity) < 0) {
+      lineItem.properties = [
+        {
+          name: "Status",
+          value: "Preorder — estimated arrival 30-45 business days"
+        }
+      ];
+    }
+
+    lineItems.push(lineItem);
   });
 
   // 2. Add installation service items (as regular line items with variant_id)
