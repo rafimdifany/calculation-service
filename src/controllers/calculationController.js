@@ -28,7 +28,8 @@ const calculate = async (req, res, next) => {
       calculation.lineItems,
       reqCurrency,
       calculation.note,
-      calculation.appliedDiscount
+      calculation.appliedDiscount,
+      calculation.shippingLine
     );
 
     // Step 3: Return success response with checkout URL

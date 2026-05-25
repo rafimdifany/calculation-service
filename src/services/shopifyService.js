@@ -70,7 +70,7 @@ const getAccessToken = async () => {
  * Create a draft order in Shopify.
  * @returns {Promise<object>} Draft order response with checkout URL
  */
-const createDraftOrder = async (lineItems, currency, note, appliedDiscount) => {
+const createDraftOrder = async (lineItems, currency, note, appliedDiscount, shippingLine) => {
   const accessToken = await getAccessToken();
   const storeUrl = process.env.SHOPIFY_STORE_URL;
   const url = `${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/draft_orders.json`;
@@ -81,6 +81,10 @@ const createDraftOrder = async (lineItems, currency, note, appliedDiscount) => {
       currency: currency,
     },
   };
+
+  if (shippingLine) {
+    payload.draft_order.shipping_line = shippingLine;
+  }
 
   if (note) {
     payload.draft_order.note = note;

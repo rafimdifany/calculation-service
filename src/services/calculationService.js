@@ -102,16 +102,12 @@ const calculate = (items, notes) => {
     });
   }
 
-  // 4. Add Local Delivery (always added)
-  if (localDelivery > 0) {
-    lineItems.push({
-      title: 'Local Delivery',
-      price: localDelivery.toFixed(2),
-      quantity: 1,
-      requires_shipping: false,
-      taxable: false,
-    });
-  }
+  // 4. Add Local Delivery as shipping_line
+  const shippingLine = {
+    title: 'Local Delivery',
+    price: isLocalDeliveryFree ? "0.00" : localDelivery.toFixed(2),
+    custom: true
+  };
 
   // Use note directly from payload
   let note = notes || null;
@@ -126,10 +122,7 @@ const calculate = (items, notes) => {
     discountDescriptions.push(`Ocean Freight FREE (FPA > SGD ${OCEAN_FREIGHT_FREE_THRESHOLD})`);
   }
 
-  if (isLocalDeliveryFree) {
-    totalDiscount += localDelivery;
-    discountDescriptions.push(`Local Delivery FREE (FPA > SGD ${LOCAL_DELIVERY_FREE_THRESHOLD})`);
-  }
+  // Note: Local Delivery free status is handled directly in shippingLine price (0.00)
 
   if (isInstallationFree && installationItems.length > 0) {
     const totalInstallationCost = installationItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -157,7 +150,8 @@ const calculate = (items, notes) => {
     isInstallationFree,
     lineItems,
     note,
-    appliedDiscount
+    appliedDiscount,
+    shippingLine
   };
 };
 
