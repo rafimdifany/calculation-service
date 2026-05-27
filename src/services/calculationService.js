@@ -84,13 +84,22 @@ const calculate = (items, notes, inventoryMap = {}) => {
     };
 
     const stock = inventoryMap[item.variant_id];
-    if (stock !== undefined && (stock - item.quantity) < 0) {
-      lineItem.properties = [
-        {
-          name: "Status",
-          value: "Preorder — estimated arrival 30-45 business days"
-        }
-      ];
+    if (stock !== undefined) {
+      if ((stock - item.quantity) < 0) {
+        lineItem.properties = [
+          {
+            name: "Pre-order",
+            value: "For a more accurate delivery estimate, please contact customer service."
+          }
+        ];
+      } else {
+        lineItem.properties = [
+          {
+            name: "Ready Stock",
+            value: "Delivery timing may vary depending on items in your order. Contact customer service for an estimate."
+          }
+        ];
+      }
     }
 
     lineItems.push(lineItem);

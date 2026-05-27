@@ -163,6 +163,7 @@ const getInventoryQuantities = async (variantIds) => {
               edges {
                 node {
                   quantities(names: ["available"]) {
+                    name
                     quantity
                   }
                 }
@@ -228,8 +229,8 @@ const getInventoryQuantities = async (variantIds) => {
         levels.forEach((edge) => {
           const quantities = edge.node?.quantities || [];
           quantities.forEach((q) => {
-            if (q.name === 'available') {
-              totalAvailable += q.quantity;
+            if (!q.name || q.name === 'available') {
+              totalAvailable += (q.quantity || 0);
             }
           });
         });
