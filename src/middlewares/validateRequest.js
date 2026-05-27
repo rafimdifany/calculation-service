@@ -26,7 +26,9 @@ const itemSchema = Joi.object({
   price_display: Joi.string().required().messages({
     'any.required': 'price_display is required for each item',
   }),
-});
+  original_price: Joi.number().min(0).optional(),
+  original_display_price: Joi.string().optional(),
+}).unknown(true);
 
 const requestSchema = Joi.object({
   items: Joi.array().items(itemSchema).min(1).required().messages({

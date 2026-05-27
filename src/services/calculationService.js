@@ -83,22 +83,28 @@ const calculate = (items, notes, inventoryMap = {}) => {
       quantity: item.quantity,
     };
 
+    lineItem.properties = [];
+
+    if (item.original_price !== undefined && item.original_price > item.price) {
+      const origPriceVal = item.original_display_price || `$${item.original_price.toFixed(2)}`;
+      lineItem.properties.push({
+        name: "Original Price",
+        value: origPriceVal
+      });
+    }
+
     const stock = inventoryMap[item.variant_id];
     if (stock !== undefined) {
       if ((stock - item.quantity) < 0) {
-        lineItem.properties = [
-          {
-            name: "Pre-order",
-            value: "For a more accurate delivery estimate, please contact customer service."
-          }
-        ];
+        lineItem.properties.push({
+          name: "Pre-order",
+          value: "For a more accurate delivery estimate, please contact customer service."
+        });
       } else {
-        lineItem.properties = [
-          {
-            name: "Ready Stock",
-            value: "Delivery timing may vary depending on items in your order. Contact customer service for an estimate."
-          }
-        ];
+        lineItem.properties.push({
+          name: "Ready Stock",
+          value: "Delivery timing may vary depending on items in your order. Contact customer service for an estimate."
+        });
       }
     }
 
@@ -107,10 +113,22 @@ const calculate = (items, notes, inventoryMap = {}) => {
 
   // 2. Add installation service items (as regular line items with variant_id)
   installationItems.forEach((item) => {
-    lineItems.push({
+    const lineItem = {
       variant_id: item.variant_id,
       quantity: item.quantity,
-    });
+    };
+
+    if (item.original_price !== undefined && item.original_price > item.price) {
+      const origPriceVal = item.original_display_price || `$${item.original_price.toFixed(2)}`;
+      lineItem.properties = [
+        {
+          name: "Original Price",
+          value: origPriceVal
+        }
+      ];
+    }
+
+    lineItems.push(lineItem);
   });
 
   // 3. Add Ocean Freight (if applicable)
