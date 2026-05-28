@@ -8,8 +8,9 @@ const logger = require('../utils/logger');
  */
 const calculate = async (req, res, next) => {
   try {
-    const { items, notes, currency } = req.body;
+    const { items, notes, currency, payment_method } = req.body;
     const reqCurrency = currency || 'SGD';
+    const paymentMethod = payment_method ? payment_method.trim().toLowerCase() : null;
 
     logger.info(`Received calculation request with ${items.length} items`);
 
@@ -27,12 +28,13 @@ const calculate = async (req, res, next) => {
     }
 
     // Step 2: Calculate charges (ocean freight, local delivery, installation) and build line items
-    const calculation = calculationService.calculate(items, notes, inventoryMap);
+    const calculation = calculationService.calculate(items, notes, inventoryMap, paymentMethod);
 
     logger.info(
       `Calculation result — FPA: $${calculation.fpa.toFixed(2)}, ` +
       `Ocean Freight: $${calculation.oceanFreight.toFixed(2)}, ` +
       `Local Delivery: $${calculation.localDelivery.toFixed(2)}, ` +
+      `Credit Card Fees: $${calculation.creditCardFee.toFixed(2)}, ` +
       `Installation Free: ${calculation.isInstallationFree}`
     );
 
@@ -42,7 +44,8 @@ const calculate = async (req, res, next) => {
       reqCurrency,
       calculation.note,
       calculation.appliedDiscount,
-      calculation.shippingLine
+      calculation.shippingLine,
+      paymentMethod
     );
 
     // Step 3: Return success response with checkout URL

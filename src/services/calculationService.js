@@ -5,6 +5,8 @@ const {
   LOCAL_DELIVERY_CHARGE,
   LOCAL_DELIVERY_FREE_THRESHOLD,
   INSTALLATION_FREE_THRESHOLD,
+  CREDIT_CARD_FEE_RATE,
+  CREDIT_CARD_PAYMENT_METHOD,
   TAG_INSTALLATION_SERVICE,
 } = require('../utils/constants');
 
@@ -33,9 +35,10 @@ const isInstallationService = (item) => {
  * @param {object[]} items - Items from the request payload
  * @param {string} [notes] - Optional notes from the request
  * @param {object} [inventoryMap] - Optional map of variant_id to available inventory quantity
+ * @param {string} [paymentMethod] - Optional payment method from the request
  * @returns {object} Calculation result
  */
-const calculate = (items, notes, inventoryMap = {}) => {
+const calculate = (items, notes, inventoryMap = {}, paymentMethod = null) => {
   // Aggregate items with the same variant_id to avoid duplicate line items
   const aggregatedItemsMap = {};
   items.forEach(item => {
@@ -83,6 +86,10 @@ const calculate = (items, notes, inventoryMap = {}) => {
   if (isInstallationFree) {
     logger.info(`Installation: FREE (FPA >= $${INSTALLATION_FREE_THRESHOLD})`);
   }
+
+  const totalInstallationCost = installationItems.reduce((sum, item) => {
+    return sum + item.price * item.quantity;
+  }, 0);
 
   // Build line items for Shopify draft order
   const lineItems = [];
@@ -176,7 +183,6 @@ const calculate = (items, notes, inventoryMap = {}) => {
   // Note: Local Delivery free status is handled directly in shippingLine price (0.00)
 
   if (isInstallationFree && installationItems.length > 0) {
-    const totalInstallationCost = installationItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     if (totalInstallationCost > 0) {
       totalDiscount += totalInstallationCost;
       discountDescriptions.push(`Installation FREE (FPA > SGD ${INSTALLATION_FREE_THRESHOLD})`);
@@ -207,10 +213,36 @@ const calculate = (items, notes, inventoryMap = {}) => {
     };
   }
 
+  let creditCardFee = 0;
+  if (paymentMethod === CREDIT_CARD_PAYMENT_METHOD) {
+    const chargedLocalDelivery = isLocalDeliveryFree ? 0 : localDelivery;
+    const totalBeforeCreditCardFee = Math.max(
+      0,
+      fpaRounded + totalInstallationCost + oceanFreight + chargedLocalDelivery - totalDiscount
+    );
+    creditCardFee = Math.round((totalBeforeCreditCardFee * CREDIT_CARD_FEE_RATE / 100) * 100) / 100;
+
+    if (creditCardFee > 0) {
+      lineItems.push({
+        title: 'Credit Card Fees',
+        price: creditCardFee.toFixed(2),
+        quantity: 1,
+        requires_shipping: false,
+        taxable: false,
+      });
+
+      logger.info(
+        `Credit Card Fees: $${creditCardFee.toFixed(2)} ` +
+        `(${CREDIT_CARD_FEE_RATE}% of $${totalBeforeCreditCardFee.toFixed(2)})`
+      );
+    }
+  }
+
   return {
     fpa: fpaRounded,
     oceanFreight,
     localDelivery,
+    creditCardFee,
     isInstallationFree,
     lineItems,
     note,

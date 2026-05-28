@@ -35,6 +35,10 @@ const requestSchema = Joi.object({
     'any.required': 'items array is required',
     'array.min': 'items must contain at least 1 item',
   }),
+  payment_method: Joi.string().trim().max(100).optional().messages({
+    'string.base': 'payment_method must be a string',
+    'string.max': 'payment_method must not exceed 100 characters',
+  }),
 });
 
 const validateRequest = (req, res, next) => {

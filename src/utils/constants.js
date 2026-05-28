@@ -5,6 +5,8 @@ module.exports = {
   LOCAL_DELIVERY_CHARGE: parseFloat(process.env.LOCAL_DELIVERY_CHARGE) || 40,
   LOCAL_DELIVERY_FREE_THRESHOLD: parseFloat(process.env.LOCAL_DELIVERY_FREE_THRESHOLD) || 2000,
   INSTALLATION_FREE_THRESHOLD: parseFloat(process.env.INSTALLATION_FREE_THRESHOLD) || 12000,
+  CREDIT_CARD_FEE_RATE: parseFloat(process.env.CREDIT_CARD_FEE_RATE) || 3,
+  CREDIT_CARD_PAYMENT_METHOD: 'pay_with_cc',
 
   // Tags
   TAG_INSTALLATION_SERVICE: 'service',

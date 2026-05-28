@@ -35,6 +35,7 @@ Edit `.env` dan isi dengan credentials yang benar:
 | `SHOPIFY_STORE_URL` | URL toko Shopify (e.g., `https://yeswood.myshopify.com`) |
 | `SHOPIFY_CLIENT_ID` | Shopify App Client ID |
 | `SHOPIFY_CLIENT_SECRET` | Shopify App Client Secret |
+| `CREDIT_CARD_FEE_RATE` | Credit card fee percentage (default: `3`) |
 
 ### 3. Run Locally
 
@@ -63,6 +64,7 @@ Content-Type: application/json
 
 ```json
 {
+  "payment_method": "pay_with_cc",
   "items": [
     {
       "variant_id": 53097199272258,
@@ -83,6 +85,17 @@ Content-Type: application/json
   ]
 }
 ```
+
+`payment_method` dikirim ke Shopify Draft Order sebagai `note_attributes` dengan format:
+
+```json
+{
+  "name": "payment_method",
+  "value": "pay_with_cc"
+}
+```
+
+Jika `payment_method` bernilai `pay_with_cc`, service akan menambahkan custom line item `Credit Card Fees` sebesar 3% dari total hasil kalkulasi sebelum credit card fee.
 
 **Success Response:**
 
