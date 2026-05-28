@@ -36,9 +36,20 @@ const isInstallationService = (item) => {
  * @returns {object} Calculation result
  */
 const calculate = (items, notes, inventoryMap = {}) => {
+  // Aggregate items with the same variant_id to avoid duplicate line items
+  const aggregatedItemsMap = {};
+  items.forEach(item => {
+    if (aggregatedItemsMap[item.variant_id]) {
+      aggregatedItemsMap[item.variant_id].quantity += item.quantity;
+    } else {
+      aggregatedItemsMap[item.variant_id] = { ...item };
+    }
+  });
+  const aggregatedItems = Object.values(aggregatedItemsMap);
+
   // Separate product items and installation-service items
-  const productItems = items.filter((item) => !isInstallationService(item));
-  const installationItems = items.filter((item) => isInstallationService(item));
+  const productItems = aggregatedItems.filter((item) => !isInstallationService(item));
+  const installationItems = aggregatedItems.filter((item) => isInstallationService(item));
 
   // Calculate FPA (Final Product Amount) from product items only
   const fpa = productItems.reduce((sum, item) => {
