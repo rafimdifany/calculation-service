@@ -70,37 +70,141 @@ const getAccessToken = async () => {
  * Create a draft order in Shopify.
  * @returns {Promise<object>} Draft order response with checkout URL
  */
+const toProductVariantGid = (variantId) => `gid://shopify/ProductVariant/${variantId}`;
+
+const toCustomAttributes = (properties) => {
+  if (!Array.isArray(properties)) return undefined;
+
+  const attributes = properties
+    .filter((property) => property && property.name && property.value !== undefined)
+    .map((property) => ({
+      key: property.name,
+      value: String(property.value),
+    }));
+
+  return attributes.length > 0 ? attributes : undefined;
+};
+
+const toGraphQLLineItem = (lineItem, currency) => {
+  const graphqlLineItem = {
+    quantity: lineItem.quantity,
+  };
+
+  if (lineItem.variant_id) {
+    graphqlLineItem.variantId = toProductVariantGid(lineItem.variant_id);
+  } else {
+    graphqlLineItem.title = lineItem.title;
+    graphqlLineItem.originalUnitPriceWithCurrency = {
+      amount: lineItem.price,
+      currencyCode: currency,
+    };
+  }
+
+  if (lineItem.price_override) {
+    graphqlLineItem.priceOverride = {
+      amount: lineItem.price_override,
+      currencyCode: currency,
+    };
+  }
+
+  const customAttributes = toCustomAttributes(lineItem.properties);
+  if (customAttributes) {
+    graphqlLineItem.customAttributes = customAttributes;
+  }
+
+  if (lineItem.requires_shipping !== undefined) {
+    graphqlLineItem.requiresShipping = lineItem.requires_shipping;
+  }
+
+  if (lineItem.taxable !== undefined) {
+    graphqlLineItem.taxable = lineItem.taxable;
+  }
+
+  if (lineItem.sku) {
+    graphqlLineItem.sku = lineItem.sku;
+  }
+
+  return graphqlLineItem;
+};
+
+const toGraphQLShippingLine = (shippingLine, currency) => {
+  if (!shippingLine) return null;
+
+  return {
+    title: shippingLine.title,
+    priceWithCurrency: {
+      amount: shippingLine.price,
+      currencyCode: currency,
+    },
+  };
+};
+
+const toGraphQLAppliedDiscount = (appliedDiscount, currency) => {
+  if (!appliedDiscount) return null;
+
+  const value = Number(appliedDiscount.value);
+  const amount = appliedDiscount.amount || appliedDiscount.value;
+
+  return {
+    title: appliedDiscount.title,
+    description: appliedDiscount.description,
+    value,
+    valueType: appliedDiscount.value_type === 'percentage' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+    amountWithCurrency: {
+      amount,
+      currencyCode: currency,
+    },
+  };
+};
+
 const createDraftOrder = async (lineItems, currency, note, appliedDiscount, shippingLine, paymentMethod) => {
   const accessToken = await getAccessToken();
   const storeUrl = process.env.SHOPIFY_STORE_URL;
-  const url = `${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/draft_orders.json`;
+  const url = `${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
 
   const payload = {
-    draft_order: {
-      line_items: lineItems,
-      currency: currency,
+    query: `
+      mutation draftOrderCreate($input: DraftOrderInput!) {
+        draftOrderCreate(input: $input) {
+          draftOrder {
+            id
+            legacyResourceId
+            invoiceUrl
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `,
+    variables: {
+      input: {
+        lineItems: lineItems.map((lineItem) => toGraphQLLineItem(lineItem, currency)),
+        presentmentCurrencyCode: currency,
+      },
     },
   };
 
   if (shippingLine) {
-    payload.draft_order.shipping_line = shippingLine;
+    payload.variables.input.shippingLine = toGraphQLShippingLine(shippingLine, currency);
   }
 
   if (note) {
-    payload.draft_order.note = note;
+    payload.variables.input.note = note;
   }
 
   if (paymentMethod) {
-    payload.draft_order.note_attributes = [
+    payload.variables.input.customAttributes = [
       {
-        name: 'payment_method',
+        key: 'payment_method',
         value: paymentMethod,
       },
     ];
   }
 
   if (appliedDiscount) {
-    payload.draft_order.applied_discount = appliedDiscount;
+    payload.variables.input.appliedDiscount = toGraphQLAppliedDiscount(appliedDiscount, currency);
   }
 
   logger.info(`Creating draft order with ${lineItems.length} line items...`);
@@ -125,7 +229,7 @@ const createDraftOrder = async (lineItems, currency, note, appliedDiscount, ship
       throw new ShopifyApiError(`Unexpected non-JSON response from Shopify: ${responseText.slice(0, 150)}...`);
     }
 
-    if (!response.ok) {
+    if (!response.ok || data.errors) {
       const errorMessage = data.errors
         ? typeof data.errors === 'string'
           ? data.errors
@@ -135,12 +239,27 @@ const createDraftOrder = async (lineItems, currency, note, appliedDiscount, ship
       throw new ShopifyApiError(`Failed to create draft order: ${errorMessage}`);
     }
 
-    const checkoutUrl = data.draft_order.invoice_url;
+    const userErrors = data.data?.draftOrderCreate?.userErrors || [];
+    if (userErrors.length > 0) {
+      const errorMessage = userErrors
+        .map((error) => `${error.field ? error.field.join('.') + ': ' : ''}${error.message}`)
+        .join('; ');
+      logger.error(`Shopify draft order creation failed: ${errorMessage}`);
+      throw new ShopifyApiError(`Failed to create draft order: ${errorMessage}`);
+    }
+
+    const draftOrder = data.data?.draftOrderCreate?.draftOrder;
+    if (!draftOrder?.invoiceUrl) {
+      logger.error(`Shopify draft order creation returned no invoiceUrl: ${JSON.stringify(data)}`);
+      throw new ShopifyApiError('Failed to create draft order: missing invoiceUrl');
+    }
+
+    const checkoutUrl = draftOrder.invoiceUrl;
     logger.info(`Draft order created successfully. Checkout URL: ${checkoutUrl}`);
 
     return {
       checkoutUrl,
-      draftOrderId: data.draft_order.id,
+      draftOrderId: draftOrder.legacyResourceId || draftOrder.id,
     };
   } catch (error) {
     if (error instanceof ShopifyApiError) throw error;

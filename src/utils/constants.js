@@ -7,6 +7,8 @@ module.exports = {
   INSTALLATION_FREE_THRESHOLD: parseFloat(process.env.INSTALLATION_FREE_THRESHOLD) || 12000,
   CREDIT_CARD_FEE_RATE: parseFloat(process.env.CREDIT_CARD_FEE_RATE) || 3,
   CREDIT_CARD_PAYMENT_METHOD: 'pay_with_cc',
+  OCEAN_FREIGHT_VARIANT_ID: parseInt(process.env.OCEAN_FREIGHT_VARIANT_ID, 10) || 53551509340482,
+  CREDIT_CARD_FEE_VARIANT_ID: parseInt(process.env.CREDIT_CARD_FEE_VARIANT_ID, 10) || 53551551676738,
 
   // Tags
   TAG_INSTALLATION_SERVICE: 'service',
@@ -14,5 +16,5 @@ module.exports = {
   TAG_INSTALLATION_SMALL: 'installation-small',
 
   // Shopify
-  SHOPIFY_API_VERSION: '2025-01',
+  SHOPIFY_API_VERSION: process.env.SHOPIFY_API_VERSION || '2025-07',
 };

@@ -33,9 +33,12 @@ Edit `.env` dan isi dengan credentials yang benar:
 | `CLIENT_ID` | Client ID untuk autentikasi FE |
 | `CLIENT_SECRET` | Client Secret untuk autentikasi FE |
 | `SHOPIFY_STORE_URL` | URL toko Shopify (e.g., `https://yeswood.myshopify.com`) |
+| `SHOPIFY_API_VERSION` | Shopify Admin API version (default: `2025-07`) |
 | `SHOPIFY_CLIENT_ID` | Shopify App Client ID |
 | `SHOPIFY_CLIENT_SECRET` | Shopify App Client Secret |
 | `CREDIT_CARD_FEE_RATE` | Credit card fee percentage (default: `3`) |
+| `OCEAN_FREIGHT_VARIANT_ID` | Shopify variant ID used for Ocean Freight price override |
+| `CREDIT_CARD_FEE_VARIANT_ID` | Shopify variant ID used for Credit Card Fees price override |
 
 ### 3. Run Locally
 
@@ -86,16 +89,16 @@ Content-Type: application/json
 }
 ```
 
-`payment_method` dikirim ke Shopify Draft Order sebagai `note_attributes` dengan format:
+`payment_method` dikirim ke Shopify Draft Order GraphQL sebagai `customAttributes` dengan format:
 
 ```json
 {
-  "name": "payment_method",
+  "key": "payment_method",
   "value": "pay_with_cc"
 }
 ```
 
-Jika `payment_method` bernilai `pay_with_cc`, service akan menambahkan custom line item `Credit Card Fees` sebesar 3% dari total hasil kalkulasi sebelum credit card fee.
+Jika `payment_method` bernilai `pay_with_cc`, service akan menambahkan line item `Credit Card Fees` menggunakan `CREDIT_CARD_FEE_VARIANT_ID` dengan `priceOverride` sebesar 3% dari total hasil kalkulasi sebelum credit card fee. `Ocean Freight` juga menggunakan `OCEAN_FREIGHT_VARIANT_ID` dengan `priceOverride`.
 
 **Success Response:**
 

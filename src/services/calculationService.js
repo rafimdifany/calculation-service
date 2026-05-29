@@ -7,6 +7,8 @@ const {
   INSTALLATION_FREE_THRESHOLD,
   CREDIT_CARD_FEE_RATE,
   CREDIT_CARD_PAYMENT_METHOD,
+  OCEAN_FREIGHT_VARIANT_ID,
+  CREDIT_CARD_FEE_VARIANT_ID,
   TAG_INSTALLATION_SERVICE,
 } = require('../utils/constants');
 
@@ -152,9 +154,9 @@ const calculate = (items, notes, inventoryMap = {}, paymentMethod = null) => {
   // 3. Add Ocean Freight (if applicable)
   if (oceanFreight > 0) {
     lineItems.push({
-      title: 'Ocean Freight',
-      price: oceanFreight.toFixed(2),
+      variant_id: OCEAN_FREIGHT_VARIANT_ID,
       quantity: 1,
+      price_override: oceanFreight.toFixed(2),
       requires_shipping: false,
       taxable: false,
     });
@@ -224,9 +226,9 @@ const calculate = (items, notes, inventoryMap = {}, paymentMethod = null) => {
 
     if (creditCardFee > 0) {
       lineItems.push({
-        title: 'Credit Card Fees',
-        price: creditCardFee.toFixed(2),
+        variant_id: CREDIT_CARD_FEE_VARIANT_ID,
         quantity: 1,
+        price_override: creditCardFee.toFixed(2),
         requires_shipping: false,
         taxable: false,
       });
